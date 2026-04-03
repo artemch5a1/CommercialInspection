@@ -34,7 +34,6 @@ interface LessonStats {
 const StudentProfile = ({ onBack }: StudentProfileProps) => {
   const [activeTab, setActiveTab] = useState<'profile' | 'statistics' | 'tasks'>('profile');
 
-  // Данные пользователя (можно заменить на реальные данные из API)
   const userData: UserData = {
     lastName: 'Иванов',
     firstName: 'Иван',
@@ -45,7 +44,6 @@ const StudentProfile = ({ onBack }: StudentProfileProps) => {
     availableLevel: 'Средний'
   };
 
-  // Данные статистики (можно заменить на реальные данные из API)
   const statisticsData: LessonStats[] = [
     {
       id: 1,
@@ -70,7 +68,7 @@ const StudentProfile = ({ onBack }: StudentProfileProps) => {
       grade: 92,
       wagonType: 'Пассажирский вагон',
       defects: [
-        { name: 'Раковина на поверхности' } // Неисправность без комментария
+        { name: 'Раковина на поверхности' }
       ],
       comment: 'Отлично!'
     },
@@ -96,7 +94,7 @@ const StudentProfile = ({ onBack }: StudentProfileProps) => {
       mode: 'Самостоятельная',
       grade: 88,
       wagonType: 'Рефрижератор',
-      defects: [], // Неисправностей не обнаружено
+      defects: [],
       comment: 'Хороший результат'
     }
   ];
@@ -105,7 +103,7 @@ const StudentProfile = ({ onBack }: StudentProfileProps) => {
     if (defects.length === 0) {
       return <span className="no-defects">Дефектов не обнаружено</span>;
     }
-    
+
     return (
       <div className="defects-list">
         {defects.map((defect, index) => (
@@ -216,22 +214,22 @@ const StudentProfile = ({ onBack }: StudentProfileProps) => {
         <div className="student-sidebar">
           <div className="menu-buttons-wrapper">
             <div className="menu-buttons">
-              <button 
+              <button
                 className={`menu-btn student-btn ${activeTab === 'profile' ? 'active' : ''}`}
                 onClick={() => setActiveTab('profile')}
               >
                 <span className="btn-title">Личный кабинет</span>
               </button>
-              
-              <button 
+
+              <button
                 className={`menu-btn teacher-btn ${activeTab === 'statistics' ? 'active' : ''}`}
                 onClick={() => setActiveTab('statistics')}
               >
                 <span className="btn-title">Статистика</span>
                 <span className="btn-subtitle">данные о пройденных уроках</span>
               </button>
-              
-              <button 
+
+              <button
                 className={`menu-btn guest-btn ${activeTab === 'tasks' ? 'active' : ''}`}
                 onClick={() => setActiveTab('tasks')}
               >

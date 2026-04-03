@@ -13,7 +13,7 @@ function App() {
 
   const validCredentials = {
     student: { login: "student", password: "123" },
-    teacher: { login: "teacher", password: "123" }
+    teacher: { login: "123", password: "123" }
   };
 
   const handleOpenModal = (type: "student" | "teacher") => {
@@ -34,7 +34,7 @@ function App() {
 
   const handleLogin = () => {
     if (!modalType) return;
-    
+
     const credentials = validCredentials[modalType];
     if (login === credentials.login && password === credentials.password) {
       setIsModalOpen(false);
@@ -61,7 +61,6 @@ function App() {
     }
   };
 
-  // Главное меню прямо здесь
   const MainMenu = () => (
     <div className="main-menu">
       <div className="left-text">
@@ -69,15 +68,15 @@ function App() {
       </div>
       <div className="right-buttons">
         <div className="menu-buttons">
-          <button 
+          <button
             className="menu-btn student-btn"
             onClick={() => handleOpenModal("student")}
           >
             <span className="btn-title">УЧЕНИК</span>
             <span className="btn-subtitle">личный профиль</span>
           </button>
-          
-          <button 
+
+          <button
             className="menu-btn teacher-btn"
             onClick={() => handleOpenModal("teacher")}
           >
@@ -94,20 +93,19 @@ function App() {
       {currentPage === "main" && <MainMenu />}
       {currentPage === "student" && <StudentProfile onBack={() => setCurrentPage("main")} />}
       {currentPage === "teacher" && <TeacherPanel onBack={() => setCurrentPage("main")} />}
-      
+
       {isModalOpen && (
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{modalType === "student" ? "Вход для ученика" : "Вход для преподавателя"}</h2>
-              <button className="modal-close" onClick={handleCloseModal}>×</button>
             </div>
-            
+
             <div className="modal-body">
               <div className="input-group">
                 <label>Логин</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={login}
                   onChange={handleLoginChange}
                   placeholder="Введите логин"
@@ -115,21 +113,21 @@ function App() {
                   autoFocus
                 />
               </div>
-              
+
               <div className="input-group">
                 <label>Пароль</label>
-                <input 
-                  type="password" 
+                <input
+                  type="password"
                   value={password}
                   onChange={handlePasswordChange}
                   placeholder="Введите пароль"
                   onKeyPress={handleKeyPress}
                 />
               </div>
-              
+
               {error && <div className="error-message">{error}</div>}
             </div>
-            
+
             <div className="modal-footer">
               <button className="modal-btn ok-btn" onClick={handleLogin}>ОК</button>
               <button className="modal-btn cancel-btn" onClick={handleCloseModal}>Отмена</button>
