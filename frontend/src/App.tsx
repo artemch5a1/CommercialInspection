@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
 import StudentProfile from "./pages/StudentProfile";
 import TeacherPanel from "./pages/TeacherPanel";
+import { loginUser, setCurrentUser, getCurrentUser, clearCurrentUser } from "./services/api";
 
 function App() {
   const [currentPage, setCurrentPage] = useState("main");
@@ -10,11 +11,21 @@ function App() {
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const validCredentials = {
-    student: { login: "student", password: "123" },
-    teacher: { login: "teacher", password: "123" }
-  };
+  useEffect(() => {
+    const checkSavedUser = async () => {
+      const result = await getCurrentUser();
+      if (result.success && result.user) {
+        const user = result.user;
+        const userRole = user.role_text || (user.role === true ? "teacher" : "student");
+        console.log('Найден сохраненный пользователь с ролью:', userRole);
+        console.log('Остаемся на главной странице');
+      }
+    };
+    checkSavedUser();
+  }, []);
 
   const handleOpenModal = (type: "student" | "teacher") => {
     setModalType(type);
@@ -22,6 +33,7 @@ function App() {
     setLogin("");
     setPassword("");
     setError("");
+    setShowPassword(false);
   };
 
   const handleCloseModal = () => {
@@ -30,21 +42,52 @@ function App() {
     setLogin("");
     setPassword("");
     setError("");
+    setShowPassword(false);
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!modalType) return;
     
-    const credentials = validCredentials[modalType];
-    if (login === credentials.login && password === credentials.password) {
-      setIsModalOpen(false);
-      setCurrentPage(modalType);
-      setLogin("");
-      setPassword("");
-      setError("");
-    } else {
-      setError("Неверный логин или пароль");
+    setLoading(true);
+    setError("");
+    
+    try {
+      const result = await loginUser(login, password);
+      
+      console.log("Login result:", result);
+      
+      if (result && result.success) {
+        const userData = result.user;
+        const userRole = result.role || (userData.role_text) || (userData.role === true ? "teacher" : "student");
+        
+        console.log("User role:", userRole);
+        console.log("Modal type:", modalType);
+        
+        if (modalType === userRole) {
+          setCurrentUser(userData);
+          setIsModalOpen(false);
+          setLogin("");
+          setPassword("");
+          setError("");
+          setShowPassword(false);
+          setCurrentPage(userRole);
+        } else {
+          setError(`Роль пользователя (${userRole}) не соответствует выбранной (${modalType})`);
+        }
+      } else {
+        setError(result?.error || "Неверный логин или пароль");
+      }
+    } catch (error) {
+      console.error("Ошибка входа:", error);
+      setError("Ошибка подключения к серверу");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleLogout = () => {
+    clearCurrentUser();
+    setCurrentPage("main");
   };
 
   const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,7 +104,10 @@ function App() {
     }
   };
 
-  // Главное меню прямо здесь
+  const toggleShowPassword = () => {
+    setShowPassword(!showPassword);
+  };
+
   const MainMenu = () => (
     <div className="main-menu">
       <div className="left-text">
@@ -69,15 +115,15 @@ function App() {
       </div>
       <div className="right-buttons">
         <div className="menu-buttons">
-          <button 
+          <button
             className="menu-btn student-btn"
             onClick={() => handleOpenModal("student")}
           >
             <span className="btn-title">УЧЕНИК</span>
             <span className="btn-subtitle">личный профиль</span>
           </button>
-          
-          <button 
+
+          <button
             className="menu-btn teacher-btn"
             onClick={() => handleOpenModal("teacher")}
           >
@@ -92,22 +138,21 @@ function App() {
   return (
     <>
       {currentPage === "main" && <MainMenu />}
-      {currentPage === "student" && <StudentProfile onBack={() => setCurrentPage("main")} />}
-      {currentPage === "teacher" && <TeacherPanel onBack={() => setCurrentPage("main")} />}
-      
+      {currentPage === "student" && <StudentProfile onBack={handleLogout} />}
+      {currentPage === "teacher" && <TeacherPanel onBack={handleLogout} />}
+
       {isModalOpen && (
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{modalType === "student" ? "Вход для ученика" : "Вход для преподавателя"}</h2>
-              <button className="modal-close" onClick={handleCloseModal}>×</button>
             </div>
-            
+
             <div className="modal-body">
               <div className="input-group">
                 <label>Логин</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={login}
                   onChange={handleLoginChange}
                   placeholder="Введите логин"
@@ -115,23 +160,50 @@ function App() {
                   autoFocus
                 />
               </div>
-              
+
               <div className="input-group">
                 <label>Пароль</label>
-                <input 
-                  type="password" 
-                  value={password}
-                  onChange={handlePasswordChange}
-                  placeholder="Введите пароль"
-                  onKeyPress={handleKeyPress}
-                />
+                <div className="password-input-wrapper">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={handlePasswordChange}
+                    placeholder="Введите пароль"
+                    onKeyPress={handleKeyPress}
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle-btn"
+                    onClick={toggleShowPassword}
+                    title={showPassword ? "Скрыть пароль" : "Показать пароль"}
+                  >
+                    {showPassword ? (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                        <line x1="1" y1="1" x2="23" y2="23" />
+                      </svg>
+                    ) : (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </div>
-              
+
               {error && <div className="error-message">{error}</div>}
             </div>
-            
+
             <div className="modal-footer">
-              <button className="modal-btn ok-btn" onClick={handleLogin}>ОК</button>
+              <button 
+                className="modal-btn ok-btn" 
+                onClick={handleLogin}
+                disabled={loading}
+              >
+                {loading ? "Вход..." : "ОК"}
+              </button>
               <button className="modal-btn cancel-btn" onClick={handleCloseModal}>Отмена</button>
             </div>
           </div>
