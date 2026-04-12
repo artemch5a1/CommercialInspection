@@ -28,6 +28,44 @@ const generateSecurePassword = (length: number = 10): string => {
   return password;
 };
 
+// Функция для получения текстового описания уровня
+const getLevelText = (level: string | undefined): string => {
+  switch (level) {
+    case 'simple':
+      return 'Простой';
+    case 'medium':
+      return 'Средний';
+    case 'hard':
+      return 'Сложный';
+    case 'maximum':
+      return 'Максимальный';
+    case 'beginner':
+      return 'Начальный';
+    case 'expert':
+      return 'Эксперт';
+    default:
+      return level || 'Не определен';
+  }
+};
+
+// Функция для получения цвета уровня
+const getLevelColor = (level: string | undefined): string => {
+  switch (level) {
+    case 'simple':
+    case 'beginner':
+      return '#10b981';
+    case 'medium':
+      return '#3b82f6';
+    case 'hard':
+      return '#f59e0b';
+    case 'maximum':
+    case 'expert':
+      return '#ef4444';
+    default:
+      return '#6b7280';
+  }
+};
+
 interface TeacherProfileProps {
   onBack: () => void;
 }
@@ -69,6 +107,7 @@ interface Student {
   login?: string;
   password?: string;
   gender?: string;
+  level?: string; // Добавлено поле уровня
 }
 
 interface RegistrationFormData {
@@ -124,6 +163,7 @@ interface Assignment {
   access?: string;
   group_id?: number;
   user_id?: number;
+  level?: string; // Добавлено поле уровня
 }
 
 interface LessonStats {
@@ -222,7 +262,8 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
     groups: [] as string[],
     students: [] as number[],
     selectedDefects: [] as number[],
-    difficulty: ''
+    difficulty: '',
+    level: '' // Добавлено поле уровня
   });
   const [selectedAssignedType, setSelectedAssignedType] = useState<string>('');
 
@@ -244,174 +285,112 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
   const weatherOptions = ['Ясно', 'Облачно', 'Дождь', 'Туман'];
   const timeOptions = ['Утро', 'День', 'Вечер', 'Ночь'];
   const difficultyOptions = ['Низкий', 'Средний', 'Высокий'];
+  const levelOptions = [
+    { value: 'beginner', label: 'Начальный' },
+    { value: 'simple', label: 'Простой' },
+    { value: 'medium', label: 'Средний' },
+    { value: 'hard', label: 'Сложный' },
+    { value: 'maximum', label: 'Максимальный' },
+    { value: 'expert', label: 'Эксперт' }
+  ];
 
+  // ... (все функции валидации остаются без изменений) ...
   const validateLogin = (login: string, isEdit: boolean = false): string | undefined => {
-    if (!login.trim()) {
-      return 'Логин обязателен для заполнения';
-    }
-    if (login.length < 3) {
-      return 'Логин должен содержать минимум 3 символа';
-    }
-    if (login.length > 50) {
-      return 'Логин не должен превышать 50 символов';
-    }
-    if (!/^[a-zA-Z0-9_]+$/.test(login)) {
-      return 'Логин может содержать только латинские буквы, цифры и знак подчеркивания';
-    }
-    if (!isEdit && existingLogins.has(login.toLowerCase())) {
-      return 'Этот логин уже занят';
-    }
+    if (!login.trim()) return 'Логин обязателен для заполнения';
+    if (login.length < 3) return 'Логин должен содержать минимум 3 символа';
+    if (login.length > 50) return 'Логин не должен превышать 50 символов';
+    if (!/^[\p{L}0-9_]+$/u.test(login)) return 'Логин может содержать только буквы, цифры и знак подчеркивания';
+    if (!isEdit && existingLogins.has(login.toLowerCase())) return 'Этот логин уже занят';
     if (isEdit && selectedStudentForEdit) {
       const otherLogins = Array.from(existingLogins).filter(l => l !== selectedStudentForEdit.login?.toLowerCase());
-      if (otherLogins.includes(login.toLowerCase())) {
-        return 'Этот логин уже занят другим пользователем';
-      }
+      if (otherLogins.includes(login.toLowerCase())) return 'Этот логин уже занят другим пользователем';
     }
     return undefined;
   };
 
   const validatePassword = (password: string, isEdit: boolean = false): string | undefined => {
-    if (!isEdit && !password) {
-      return 'Пароль обязателен для заполнения';
-    }
-    if (password && password.length < 6) {
-      return 'Пароль должен содержать минимум 6 символов';
-    }
-    if (password && password.length > 50) {
-      return 'Пароль не должен превышать 50 символов';
-    }
+    if (!isEdit && !password) return 'Пароль обязателен для заполнения';
+    if (password && password.length < 6) return 'Пароль должен содержать минимум 6 символов';
+    if (password && password.length > 50) return 'Пароль не должен превышать 50 символов';
     return undefined;
   };
 
   const validateLastName = (lastName: string): string | undefined => {
-    if (!lastName.trim()) {
-      return 'Фамилия обязательна для заполнения';
-    }
-    if (lastName.length < 2) {
-      return 'Фамилия должна содержать минимум 2 символа';
-    }
-    if (lastName.length > 50) {
-      return 'Фамилия не должна превышать 50 символов';
-    }
-    if (!/^[а-яА-ЯёЁ\-]+$/.test(lastName)) {
-      return 'Фамилия должна содержать только русские буквы и дефис';
-    }
+    if (!lastName.trim()) return 'Фамилия обязательна для заполнения';
+    if (lastName.length < 2) return 'Фамилия должна содержать минимум 2 символа';
+    if (lastName.length > 50) return 'Фамилия не должна превышать 50 символов';
+    if (!/^[а-яА-ЯёЁ\-]+$/.test(lastName)) return 'Фамилия должна содержать только русские буквы и дефис';
     return undefined;
   };
 
   const validateFirstName = (firstName: string): string | undefined => {
-    if (!firstName.trim()) {
-      return 'Имя обязательно для заполнения';
-    }
-    if (firstName.length < 2) {
-      return 'Имя должно содержать минимум 2 символа';
-    }
-    if (firstName.length > 50) {
-      return 'Имя не должно превышать 50 символов';
-    }
-    if (!/^[а-яА-ЯёЁ\-]+$/.test(firstName)) {
-      return 'Имя должно содержать только русские буквы и дефис';
-    }
+    if (!firstName.trim()) return 'Имя обязательно для заполнения';
+    if (firstName.length < 2) return 'Имя должно содержать минимум 2 символа';
+    if (firstName.length > 50) return 'Имя не должно превышать 50 символов';
+    if (!/^[а-яА-ЯёЁ\-]+$/.test(firstName)) return 'Имя должно содержать только русские буквы и дефис';
     return undefined;
   };
 
   const validatePatronymic = (patronymic: string): string | undefined => {
-    if (patronymic && patronymic.length > 50) {
-      return 'Отчество не должно превышать 50 символов';
-    }
-    if (patronymic && !/^[а-яА-ЯёЁ\-]+$/.test(patronymic)) {
-      return 'Отчество должно содержать только русские буквы и дефис';
-    }
+    if (patronymic && patronymic.length > 50) return 'Отчество не должно превышать 50 символов';
+    if (patronymic && !/^[а-яА-ЯёЁ\-]+$/.test(patronymic)) return 'Отчество должно содержать только русские буквы и дефис';
     return undefined;
   };
 
   const validateGender = (gender: string): string | undefined => {
-    if (!gender) {
-      return 'Пол обязателен для выбора';
-    }
+    if (!gender) return 'Пол обязателен для выбора';
     return undefined;
   };
 
   const validateGroup = (group: string): string | undefined => {
-    if (!group) {
-      return 'Группа обязательна для выбора';
-    }
+    if (!group) return 'Группа обязательна для выбора';
     return undefined;
   };
 
   const validateProfession = (profession: string): string | undefined => {
-    if (!profession) {
-      return 'Профессия обязательна для выбора';
-    }
+    if (!profession) return 'Профессия обязательна для выбора';
     return undefined;
   };
 
   const validateAssignmentTopic = (topicId: number): string | undefined => {
-    if (!topicId) {
-      return 'Тема обязательна для выбора';
-    }
+    if (!topicId) return 'Тема обязательна для выбора';
     return undefined;
   };
 
   const validateAssignmentTitle = (title: string): string | undefined => {
-    if (!title.trim()) {
-      return 'Название задания обязательно для заполнения';
-    }
-    if (title.length < 3) {
-      return 'Название должно содержать минимум 3 символа';
-    }
-    if (title.length > 100) {
-      return 'Название не должно превышать 100 символов';
-    }
+    if (!title.trim()) return 'Название задания обязательно для заполнения';
+    if (title.length < 3) return 'Название должно содержать минимум 3 символа';
+    if (title.length > 100) return 'Название не должно превышать 100 символов';
     return undefined;
   };
 
   const validateAssignmentDescription = (description: string): string | undefined => {
-    if (!description.trim()) {
-      return 'Описание задания обязательно для заполнения';
-    }
-    if (description.length < 10) {
-      return 'Описание должно содержать минимум 10 символов';
-    }
+    if (!description.trim()) return 'Описание задания обязательно для заполнения';
+    if (description.length < 10) return 'Описание должно содержать минимум 10 символов';
     return undefined;
   };
 
   const validateAssignmentModes = (modes: string[]): string | undefined => {
-    if (modes.length === 0) {
-      return 'Выберите хотя бы один режим';
-    }
+    if (modes.length === 0) return 'Выберите хотя бы один режим';
     return undefined;
   };
 
   const validateAssignedTo = (assignedTo: string[], selectedGroup?: string, selectedStudent?: number): string | undefined => {
-    if (assignedTo.length === 0) {
-      return 'Выберите кому назначено задание';
-    }
-    if (assignedTo.includes('group') && !selectedGroup) {
-      return 'Выберите группу';
-    }
-    if (assignedTo.includes('student') && !selectedStudent) {
-      return 'Выберите ученика';
-    }
+    if (assignedTo.length === 0) return 'Выберите кому назначено задание';
+    if (assignedTo.includes('group') && !selectedGroup) return 'Выберите группу';
+    if (assignedTo.includes('student') && !selectedStudent) return 'Выберите ученика';
     return undefined;
   };
 
   const validateManagementName = (name: string): string | undefined => {
-    if (!name.trim()) {
-      return 'Наименование обязательно для заполнения';
-    }
-    if (name.length < 2) {
-      return 'Наименование должно содержать минимум 2 символа';
-    }
-    if (name.length > 50) {
-      return 'Наименование не должно превышать 50 символов';
-    }
+    if (!name.trim()) return 'Наименование обязательно для заполнения';
+    if (name.length < 2) return 'Наименование должно содержать минимум 2 символа';
+    if (name.length > 50) return 'Наименование не должно превышать 50 символов';
     return undefined;
   };
 
   const validateForm = (isEdit: boolean = false): boolean => {
     const errors: FormErrors = {};
-
     errors.login = validateLogin(formData.login, isEdit);
     errors.password = validatePassword(formData.password, isEdit);
     errors.lastName = validateLastName(formData.lastName);
@@ -420,15 +399,12 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
     errors.gender = validateGender(formData.gender);
     errors.group = validateGroup(formData.group);
     errors.profession = validateProfession(formData.profession);
-
     setFormErrors(errors);
-
     return !Object.values(errors).some(error => error !== undefined);
   };
 
   const validateAssignmentForm = (): boolean => {
     const errors: AssignmentFormErrors = {};
-
     errors.topicId = validateAssignmentTopic(newAssignment.topicId);
     errors.title = validateAssignmentTitle(newAssignment.title);
     errors.description = validateAssignmentDescription(newAssignment.description);
@@ -438,9 +414,7 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
       newAssignment.groups[0],
       newAssignment.students[0]
     );
-
     setAssignmentErrors(errors);
-
     return !Object.values(errors).some(error => error !== undefined);
   };
 
@@ -453,37 +427,18 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
 
   const handleFieldBlur = (fieldName: string) => {
     setTouchedFields(prev => new Set(prev).add(fieldName));
-
     const errors: FormErrors = { ...formErrors };
     const isEdit = !!selectedStudentForEdit;
-
     switch (fieldName) {
-      case 'login':
-        errors.login = validateLogin(formData.login, isEdit);
-        break;
-      case 'password':
-        errors.password = validatePassword(formData.password, isEdit);
-        break;
-      case 'lastName':
-        errors.lastName = validateLastName(formData.lastName);
-        break;
-      case 'firstName':
-        errors.firstName = validateFirstName(formData.firstName);
-        break;
-      case 'patronymic':
-        errors.patronymic = validatePatronymic(formData.patronymic);
-        break;
-      case 'gender':
-        errors.gender = validateGender(formData.gender);
-        break;
-      case 'group':
-        errors.group = validateGroup(formData.group);
-        break;
-      case 'profession':
-        errors.profession = validateProfession(formData.profession);
-        break;
+      case 'login': errors.login = validateLogin(formData.login, isEdit); break;
+      case 'password': errors.password = validatePassword(formData.password, isEdit); break;
+      case 'lastName': errors.lastName = validateLastName(formData.lastName); break;
+      case 'firstName': errors.firstName = validateFirstName(formData.firstName); break;
+      case 'patronymic': errors.patronymic = validatePatronymic(formData.patronymic); break;
+      case 'gender': errors.gender = validateGender(formData.gender); break;
+      case 'group': errors.group = validateGroup(formData.group); break;
+      case 'profession': errors.profession = validateProfession(formData.profession); break;
     }
-
     setFormErrors(errors);
   };
 
@@ -553,17 +508,14 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
     const matchesSearch = `${student.lastName} ${student.firstName} ${student.patronymic}`
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
-
     let matchesGroup = true;
     if (!selectedGroups.includes('all') && selectedGroups.length > 0) {
       matchesGroup = selectedGroups.includes(student.group);
     }
-
     let matchesProfession = true;
     if (!selectedProfessions.includes('all') && selectedProfessions.length > 0) {
       matchesProfession = selectedProfessions.includes(student.profession);
     }
-
     return matchesSearch && matchesGroup && matchesProfession;
   });
 
@@ -574,7 +526,6 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
       if (wagonsData.success) {
         setTypesWagons(wagonsData.types_wagons);
       }
-
       const malfunctionsResponse = await fetch('/api/malfunctions');
       const malfunctionsData = await malfunctionsResponse.json();
       if (malfunctionsData.success) {
@@ -615,6 +566,7 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
           selectedDefects: task.task_malfunctions?.map((tm: any) => tm.malfunction_id) || [],
           createdAt: new Date(task.created_at).toLocaleString(),
           difficulty: 'Средний',
+          level: task.level || 'simple', // Добавляем уровень из БД
           access: task.access,
           group_id: task.group_id,
           user_id: task.user_id
@@ -654,7 +606,8 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
           group: user.group?.name || '',
           profession: user.profession?.name || '',
           login: user.login,
-          gender: user.pol
+          gender: user.pol,
+          level: user.level || 'simple' // Добавляем уровень из БД
         }));
         setStudents(convertedStudents);
         setExistingLogins(new Set(convertedStudents.map(s => s.login?.toLowerCase() || '')));
@@ -691,7 +644,8 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
       groups: [],
       students: [],
       selectedDefects: [],
-      difficulty: ''
+      difficulty: '',
+      level: ''
     });
     setSelectedDefects([]);
     setSelectedAssignedType('');
@@ -724,9 +678,7 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
   const handleDeleteStudent = async (student: Student) => {
     if (confirm(`Вы уверены, что хотите удалить ученика ${student.lastName} ${student.firstName}?`)) {
       try {
-        const response = await fetch(`/api/users/${student.id}`, {
-          method: 'DELETE',
-        });
+        const response = await fetch(`/api/users/${student.id}`, { method: 'DELETE' });
         const result = await response.json();
         if (result.success) {
           alert('Ученик успешно удален!');
@@ -779,15 +731,12 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
 
   const handleAssignedToChange = (type: string) => {
     setSelectedAssignedType(type);
-    setNewAssignment(prev => {
-      const newState = {
-        ...prev,
-        assignedTo: [type],
-        groups: [],
-        students: []
-      };
-      return newState;
-    });
+    setNewAssignment(prev => ({
+      ...prev,
+      assignedTo: [type],
+      groups: [],
+      students: []
+    }));
     setAssignmentErrors(prev => ({ ...prev, assignedTo: undefined, group: undefined, student: undefined }));
   };
 
@@ -828,6 +777,7 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
       weather_conditions: newAssignment.weather,
       times_day: newAssignment.timeOfDay,
       topic_id: newAssignment.topicId,
+      level: newAssignment.level || 'simple', // Добавляем уровень
       access: access,
       user_id: userId,
       group_id: groupId,
@@ -892,6 +842,7 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
       weather_conditions: newAssignment.weather,
       times_day: newAssignment.timeOfDay,
       topic_id: newAssignment.topicId,
+      level: newAssignment.level || 'simple', // Добавляем уровень
       access: access,
       user_id: userId,
       group_id: groupId,
@@ -937,7 +888,6 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
     await loadTypesWagonsAndMalfunctions();
 
     const foundTopic = topics.find(t => t.name === assignment.topic);
-
     let assignedType = 'all';
     let selectedGroup = '';
     let selectedStudentId = null;
@@ -974,7 +924,8 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
       groups: selectedGroup ? [selectedGroup] : [],
       students: selectedStudentId ? [selectedStudentId] : [],
       selectedDefects: assignment.selectedDefects,
-      difficulty: assignment.difficulty || ''
+      difficulty: assignment.difficulty || '',
+      level: assignment.level || 'simple' // Добавляем уровень
     });
 
     setSelectedAssignedType(assignedType);
@@ -985,9 +936,7 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
       const restoredDefects = assignment.selectedDefects
         .map(id => allDefects.find(d => d.id === id))
         .filter((d): d is Defect => d !== undefined);
-
       setSelectedDefects(restoredDefects);
-
       const remainingDefects = allDefects.filter(
         d => !restoredDefects.some(rd => rd.id === d.id)
       );
@@ -1000,17 +949,13 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
 
   const handleDeleteAssignment = async (assignmentId?: number) => {
     const idToDelete = assignmentId || selectedAssignment?.id || executingAssignment?.id;
-
     if (!idToDelete) {
       alert('Задание не выбрано для удаления');
       return;
     }
-
     if (confirm('Вы уверены, что хотите удалить это задание?')) {
       try {
-        const response = await fetch(`/api/tasks/${idToDelete}`, {
-          method: 'DELETE',
-        });
+        const response = await fetch(`/api/tasks/${idToDelete}`, { method: 'DELETE' });
         const result = await response.json();
         if (result.success) {
           await loadAssignments();
@@ -1042,14 +987,14 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
       groups: assignment.groups,
       students: assignment.students,
       selectedDefects: assignment.selectedDefects,
-      difficulty: assignment.difficulty || ''
+      difficulty: assignment.difficulty || '',
+      level: assignment.level || 'simple' // Добавляем уровень
     });
 
     const allDefects = [...availableDefects, ...selectedDefects];
     const restoredDefects = assignment.selectedDefects
       .map(id => allDefects.find(d => d.id === id))
       .filter((d): d is Defect => d !== undefined);
-
     setSelectedDefects(restoredDefects);
     setSelectedAssignedType(assignment.assignedTo[0] || '');
     setAssignmentErrors({});
@@ -1084,6 +1029,7 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
       weather_conditions: newAssignment.weather,
       times_day: newAssignment.timeOfDay,
       topic_id: newAssignment.topicId,
+      level: newAssignment.level || 'simple', // Добавляем уровень
       access: access,
       user_id: userId,
       group_id: groupId,
@@ -1098,7 +1044,6 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
         body: JSON.stringify(taskData)
       });
       const result = await response.json();
-
       if (result.success) {
         await loadAssignments();
         setShowTemplateForm(false);
@@ -1127,35 +1072,18 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-
     if (touchedFields.has(name)) {
       const errors: FormErrors = { ...formErrors };
       const isEdit = !!selectedStudentForEdit;
-
       switch (name) {
-        case 'login':
-          errors.login = validateLogin(value, isEdit);
-          break;
-        case 'password':
-          errors.password = validatePassword(value, isEdit);
-          break;
-        case 'lastName':
-          errors.lastName = validateLastName(value);
-          break;
-        case 'firstName':
-          errors.firstName = validateFirstName(value);
-          break;
-        case 'patronymic':
-          errors.patronymic = validatePatronymic(value);
-          break;
-        case 'group':
-          errors.group = validateGroup(value);
-          break;
-        case 'profession':
-          errors.profession = validateProfession(value);
-          break;
+        case 'login': errors.login = validateLogin(value, isEdit); break;
+        case 'password': errors.password = validatePassword(value, isEdit); break;
+        case 'lastName': errors.lastName = validateLastName(value); break;
+        case 'firstName': errors.firstName = validateFirstName(value); break;
+        case 'patronymic': errors.patronymic = validatePatronymic(value); break;
+        case 'group': errors.group = validateGroup(value); break;
+        case 'profession': errors.profession = validateProfession(value); break;
       }
-
       setFormErrors(errors);
     }
   };
@@ -1169,18 +1097,14 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     const allFields = ['login', 'password', 'lastName', 'firstName', 'patronymic', 'gender', 'group', 'profession'];
     setTouchedFields(new Set(allFields));
-
     const isEdit = !!selectedStudentForEdit;
     if (!validateForm(isEdit)) {
       alert('Пожалуйста, исправьте ошибки в форме');
       return;
     }
-
     setLoading(true);
-
     try {
       if (selectedStudentForEdit) {
         const updateData: any = {
@@ -1191,26 +1115,19 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
           group_id: groups.find(g => g.name === formData.group)?.id || null,
           profession_id: professions.find(p => p.name === formData.profession)?.id || null,
         };
-
         if (formData.password && formData.password.trim() !== '') {
           updateData.password = formData.password;
         }
-
         const response = await fetch(`/api/users/${selectedStudentForEdit.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updateData)
         });
-
         const result = await response.json();
-
         if (result.success) {
           alert('Данные ученика обновлены!');
           await loadData();
-          setFormData({
-            login: '', password: '', lastName: '', firstName: '',
-            patronymic: '', gender: '', group: '', profession: ''
-          });
+          setFormData({ login: '', password: '', lastName: '', firstName: '', patronymic: '', gender: '', group: '', profession: '' });
           setSelectedStudentForEdit(null);
           setShowPassword(false);
           setFormErrors({});
@@ -1239,14 +1156,10 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
           profession_name: formData.profession,
           role: false
         });
-
         if (result && result.success) {
           alert('Пользователь зарегистрирован!');
           await loadData();
-          setFormData({
-            login: '', password: '', lastName: '', firstName: '',
-            patronymic: '', gender: '', group: '', profession: ''
-          });
+          setFormData({ login: '', password: '', lastName: '', firstName: '', patronymic: '', gender: '', group: '', profession: '' });
           setShowPassword(false);
           setFormErrors({});
           setTouchedFields(new Set());
@@ -1279,24 +1192,14 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
   };
 
   const handleCreateItem = async () => {
-    if (!validateManagementForm(newItemName)) {
-      return;
-    }
-
+    if (!validateManagementForm(newItemName)) return;
     try {
       let result;
       switch (currentManagementType) {
-        case 'groups':
-          result = await createGroup(newItemName.trim());
-          break;
-        case 'professions':
-          result = await createProfession(newItemName.trim());
-          break;
-        case 'topics':
-          result = await createTopic(newItemName.trim());
-          break;
+        case 'groups': result = await createGroup(newItemName.trim()); break;
+        case 'professions': result = await createProfession(newItemName.trim()); break;
+        case 'topics': result = await createTopic(newItemName.trim()); break;
       }
-
       if (result && result.success) {
         await loadData();
         setIsCreateModalOpen(false);
@@ -1324,26 +1227,15 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
   };
 
   const handleEditItem = async () => {
-    if (!validateManagementForm(editItemName)) {
-      return;
-    }
-
+    if (!validateManagementForm(editItemName)) return;
     if (!editingItem) return;
-
     try {
       let result;
       switch (managementType) {
-        case 'groups':
-          result = await updateGroup(editingItem.id, editItemName.trim());
-          break;
-        case 'professions':
-          result = await updateProfession(editingItem.id, editItemName.trim());
-          break;
-        case 'topics':
-          result = await updateTopic(editingItem.id, editItemName.trim());
-          break;
+        case 'groups': result = await updateGroup(editingItem.id, editItemName.trim()); break;
+        case 'professions': result = await updateProfession(editingItem.id, editItemName.trim()); break;
+        case 'topics': result = await updateTopic(editingItem.id, editItemName.trim()); break;
       }
-
       if (result && result.success) {
         await loadData();
         setIsEditModalOpen(false);
@@ -1371,21 +1263,13 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
 
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
-
     try {
       let result;
       switch (managementType) {
-        case 'groups':
-          result = await deleteGroup(itemToDelete.id);
-          break;
-        case 'professions':
-          result = await deleteProfession(itemToDelete.id);
-          break;
-        case 'topics':
-          result = await deleteTopic(itemToDelete.id);
-          break;
+        case 'groups': result = await deleteGroup(itemToDelete.id); break;
+        case 'professions': result = await deleteProfession(itemToDelete.id); break;
+        case 'topics': result = await deleteTopic(itemToDelete.id); break;
       }
-
       if (result && result.success) {
         await loadData();
         setIsDeleteModalOpen(false);
@@ -1590,7 +1474,21 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
                   {filteredStudents.map((student) => (
                     <tr key={student.id}>
                       <td className="student-name-cell">
-                        {`${student.lastName} ${student.firstName} ${student.patronymic}`}
+                        <div style={{ fontWeight: '500', color: '#e5e7eb' }}>
+                          {`${student.lastName} ${student.firstName} ${student.patronymic}`}
+                        </div>
+                        <div style={{ 
+                          fontSize: '12px', 
+                          marginTop: '4px',
+                          display: 'inline-block',
+                          padding: '2px 10px',
+                          backgroundColor: `${getLevelColor(student.level)}20`,
+                          color: getLevelColor(student.level),
+                          borderRadius: '12px',
+                          fontWeight: '500'
+                        }}>
+                          Уровень: {getLevelText(student.level)}
+                        </div>
                       </td>
                       <td>{student.group}</td>
                       <td>{student.profession}</td>
@@ -1626,9 +1524,7 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
               <div style={{ marginBottom: '20px' }}>
                 <button className="back-btn" onClick={() => {
                   setSelectedStudentForEdit(null);
-                  setFormData({
-                    login: '', password: '', lastName: '', firstName: '', patronymic: '', gender: '', group: '', profession: ''
-                  });
+                  setFormData({ login: '', password: '', lastName: '', firstName: '', patronymic: '', gender: '', group: '', profession: '' });
                   setShowPassword(false);
                   setGeneratedPassword('');
                   setFormErrors({});
@@ -1715,7 +1611,7 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label>Фамилия*</label>
+                  <label>Фамилия *</label>
                   <input
                     type="text"
                     name="lastName"
@@ -1832,9 +1728,7 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
                 {selectedStudentForEdit && (
                   <button type="button" className="cancel-btn" onClick={() => {
                     setSelectedStudentForEdit(null);
-                    setFormData({
-                      login: '', password: '', lastName: '', firstName: '', patronymic: '', gender: '', group: '', profession: ''
-                    });
+                    setFormData({ login: '', password: '', lastName: '', firstName: '', patronymic: '', gender: '', group: '', profession: '' });
                     setGeneratedPassword('');
                     setFormErrors({});
                     setTouchedFields(new Set());
@@ -1845,9 +1739,7 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
                 )}
                 {!selectedStudentForEdit && (
                   <button type="button" className="reset-btn" onClick={() => {
-                    setFormData({
-                      login: '', password: '', lastName: '', firstName: '', patronymic: '', gender: '', group: '', profession: ''
-                    });
+                    setFormData({ login: '', password: '', lastName: '', firstName: '', patronymic: '', gender: '', group: '', profession: '' });
                     setGeneratedPassword('');
                     setFormErrors({});
                     setTouchedFields(new Set());
@@ -2129,7 +2021,12 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
                 </div>
                 <div className="details-row">
                   <span className="details-label">Уровень сложности:</span>
-                  <span className="details-value difficulty">{executingAssignment.difficulty || 'Средний'}</span>
+                  <span className="details-value" style={{ 
+                    color: getLevelColor(executingAssignment.level),
+                    fontWeight: '600'
+                  }}>
+                    {getLevelText(executingAssignment.level)}
+                  </span>
                 </div>
                 <div className="details-row">
                   <span className="details-label">Время суток:</span>
@@ -2253,16 +2150,7 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
                     )}
                   </div>
 
-                  <div className="form-group">
-                    <label>Уровень сложности</label>
-                    <select
-                      value={newAssignment.difficulty}
-                      onChange={(e) => setNewAssignment({ ...newAssignment, difficulty: e.target.value })}
-                    >
-                      <option value="">Выберите уровень сложности</option>
-                      {difficultyOptions.map(level => (<option key={level} value={level}>{level}</option>))}
-                    </select>
-                  </div>
+                 
 
                   <div className="form-row">
                     <div className="form-group">
@@ -2517,17 +2405,6 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
                     )}
                   </div>
 
-                  <div className="form-group">
-                    <label>Уровень сложности</label>
-                    <select
-                      value={newAssignment.difficulty}
-                      onChange={(e) => setNewAssignment({ ...newAssignment, difficulty: e.target.value })}
-                    >
-                      <option value="">Выберите уровень сложности</option>
-                      {difficultyOptions.map(level => (<option key={level} value={level}>{level}</option>))}
-                    </select>
-                  </div>
-
                   <div className="form-row">
                     <div className="form-group">
                       <label>Погодные условия</label>
@@ -2694,9 +2571,13 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
                             <h4>{assignment.title}</h4>
                             <span className="assignment-date">{assignment.createdAt}</span>
                           </div>
-                          <div className="assignment-difficulty">
-                            <span className="difficulty-badge">
-                              Уровень сложности: {assignment.difficulty || 'Средний'}
+                          <div style={{ display: 'flex', gap: '10px', marginTop: '8px', marginBottom: '8px' }}>
+                            <span className="difficulty-badge" style={{ 
+                              backgroundColor: `${getLevelColor(assignment.level)}20`,
+                              color: getLevelColor(assignment.level),
+                              border: `1px solid ${getLevelColor(assignment.level)}40`
+                            }}>
+                              Уровень: {getLevelText(assignment.level)}
                             </span>
                           </div>
                           <div className="assignment-actions-card" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
