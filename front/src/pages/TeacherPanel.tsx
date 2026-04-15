@@ -28,7 +28,6 @@ const generateSecurePassword = (length: number = 10): string => {
   return password;
 };
 
-// Функция для получения текстового описания уровня
 const getLevelText = (level: string | undefined): string => {
   switch (level) {
     case 'simple':
@@ -48,7 +47,6 @@ const getLevelText = (level: string | undefined): string => {
   }
 };
 
-// Функция для получения цвета уровня
 const getLevelColor = (level: string | undefined): string => {
   switch (level) {
     case 'simple':
@@ -107,7 +105,7 @@ interface Student {
   login?: string;
   password?: string;
   gender?: string;
-  level?: string; // Добавлено поле уровня
+  level?: string;
 }
 
 interface RegistrationFormData {
@@ -163,7 +161,7 @@ interface Assignment {
   access?: string;
   group_id?: number;
   user_id?: number;
-  level?: string; // Добавлено поле уровня
+  level?: string;
 }
 
 interface LessonStats {
@@ -263,7 +261,7 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
     students: [] as number[],
     selectedDefects: [] as number[],
     difficulty: '',
-    level: '' // Добавлено поле уровня
+    level: ''
   });
   const [selectedAssignedType, setSelectedAssignedType] = useState<string>('');
 
@@ -274,7 +272,6 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
   const [students, setStudents] = useState<Student[]>([]);
   const [existingLogins, setExistingLogins] = useState<Set<string>>(new Set());
 
-  // Состояния для статистики
   const [teacherExpandedStat, setTeacherExpandedStat] = useState<number | null>(null);
   const [teacherStatisticsData, setTeacherStatisticsData] = useState<LessonStats[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
@@ -294,7 +291,7 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
     { value: 'expert', label: 'Эксперт' }
   ];
 
-  // ... (все функции валидации остаются без изменений) ...
+
   const validateLogin = (login: string, isEdit: boolean = false): string | undefined => {
     if (!login.trim()) return 'Логин обязателен для заполнения';
     if (login.length < 3) return 'Логин должен содержать минимум 3 символа';
@@ -566,7 +563,7 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
           selectedDefects: task.task_malfunctions?.map((tm: any) => tm.malfunction_id) || [],
           createdAt: new Date(task.created_at).toLocaleString(),
           difficulty: 'Средний',
-          level: task.level || 'simple', // Добавляем уровень из БД
+          level: task.level || 'simple',
           access: task.access,
           group_id: task.group_id,
           user_id: task.user_id
@@ -607,7 +604,7 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
           profession: user.profession?.name || '',
           login: user.login,
           gender: user.pol,
-          level: user.level || 'simple' // Добавляем уровень из БД
+          level: user.level || 'simple'
         }));
         setStudents(convertedStudents);
         setExistingLogins(new Set(convertedStudents.map(s => s.login?.toLowerCase() || '')));
@@ -713,6 +710,7 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
       };
     });
     setAvailableDefects(defectsFromDB);
+    setSelectedDefects([]);
     setShowCreateForm(true);
     setShowAssignmentDetails(false);
     setShowTemplateForm(false);
@@ -741,13 +739,13 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
   };
 
   const handleAddDefect = (defect: Defect) => {
-    setAvailableDefects(availableDefects.filter(d => d.id !== defect.id));
-    setSelectedDefects([...selectedDefects, defect]);
+    setAvailableDefects(prev => prev.filter(d => d.id !== defect.id));
+    setSelectedDefects(prev => [...prev, defect]);
   };
 
   const handleRemoveDefect = (defect: Defect) => {
-    setSelectedDefects(selectedDefects.filter(d => d.id !== defect.id));
-    setAvailableDefects([...availableDefects, defect].sort((a, b) => a.id - b.id));
+    setSelectedDefects(prev => prev.filter(d => d.id !== defect.id));
+    setAvailableDefects(prev => [...prev, defect].sort((a, b) => a.id - b.id));
   };
 
   const handleCreateAssignment = async () => {
@@ -777,7 +775,7 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
       weather_conditions: newAssignment.weather,
       times_day: newAssignment.timeOfDay,
       topic_id: newAssignment.topicId,
-      level: newAssignment.level || 'simple', // Добавляем уровень
+      level: newAssignment.level || 'simple',
       access: access,
       user_id: userId,
       group_id: groupId,
@@ -842,7 +840,7 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
       weather_conditions: newAssignment.weather,
       times_day: newAssignment.timeOfDay,
       topic_id: newAssignment.topicId,
-      level: newAssignment.level || 'simple', // Добавляем уровень
+      level: newAssignment.level || 'simple',
       access: access,
       user_id: userId,
       group_id: groupId,
@@ -925,23 +923,33 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
       students: selectedStudentId ? [selectedStudentId] : [],
       selectedDefects: assignment.selectedDefects,
       difficulty: assignment.difficulty || '',
-      level: assignment.level || 'simple' // Добавляем уровень
+      level: assignment.level || 'simple'
     });
 
     setSelectedAssignedType(assignedType);
     setAssignmentErrors({});
 
-    setTimeout(() => {
-      const allDefects = [...availableDefects];
-      const restoredDefects = assignment.selectedDefects
-        .map(id => allDefects.find(d => d.id === id))
-        .filter((d): d is Defect => d !== undefined);
-      setSelectedDefects(restoredDefects);
-      const remainingDefects = allDefects.filter(
-        d => !restoredDefects.some(rd => rd.id === d.id)
-      );
-      setAvailableDefects(remainingDefects);
-    }, 100);
+    const allDefectsFromDB = malfunctionsFromDB.map((m) => {
+      const wagonType = typesWagons.find(w => w.id === m.types_wagon_id);
+      return {
+        id: m.id,
+        name: m.name,
+        description: m.name,
+        types_wagon_id: m.types_wagon_id,
+        wagonTypeName: wagonType?.name || ''
+      };
+    });
+
+    const selectedDefectsList = assignment.selectedDefects
+      .map(id => allDefectsFromDB.find(d => d.id === id))
+      .filter((d): d is Defect => d !== undefined);
+
+    const availableDefectsList = allDefectsFromDB.filter(
+      d => !selectedDefectsList.some(sd => sd.id === d.id)
+    );
+
+    setSelectedDefects(selectedDefectsList);
+    setAvailableDefects(availableDefectsList);
 
     setShowCreateForm(true);
     setShowTemplateForm(false);
@@ -975,8 +983,11 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
 
   const handleCreateTemplate = (assignment: Assignment) => {
     setSelectedAssignment(null);
+    
+    const foundTopic = topics.find(t => t.name === assignment.topic);
+    
     setNewAssignment({
-      topicId: topics.find(t => t.name === assignment.topic)?.id || 0,
+      topicId: foundTopic?.id || 0,
       topicName: assignment.topic,
       title: assignment.title,
       description: assignment.description,
@@ -988,14 +999,31 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
       students: assignment.students,
       selectedDefects: assignment.selectedDefects,
       difficulty: assignment.difficulty || '',
-      level: assignment.level || 'simple' // Добавляем уровень
+      level: assignment.level || 'simple'
     });
 
-    const allDefects = [...availableDefects, ...selectedDefects];
-    const restoredDefects = assignment.selectedDefects
-      .map(id => allDefects.find(d => d.id === id))
+    const allDefectsFromDB = malfunctionsFromDB.map((m) => {
+      const wagonType = typesWagons.find(w => w.id === m.types_wagon_id);
+      return {
+        id: m.id,
+        name: m.name,
+        description: m.name,
+        types_wagon_id: m.types_wagon_id,
+        wagonTypeName: wagonType?.name || ''
+      };
+    });
+
+    const selectedDefectsList = assignment.selectedDefects
+      .map(id => allDefectsFromDB.find(d => d.id === id))
       .filter((d): d is Defect => d !== undefined);
-    setSelectedDefects(restoredDefects);
+    
+    const availableDefectsList = allDefectsFromDB.filter(
+      d => !selectedDefectsList.some(sd => sd.id === d.id)
+    );
+
+    setSelectedDefects(selectedDefectsList);
+    setAvailableDefects(availableDefectsList);
+    
     setSelectedAssignedType(assignment.assignedTo[0] || '');
     setAssignmentErrors({});
     setShowTemplateForm(true);
@@ -1029,7 +1057,7 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
       weather_conditions: newAssignment.weather,
       times_day: newAssignment.timeOfDay,
       topic_id: newAssignment.topicId,
-      level: newAssignment.level || 'simple', // Добавляем уровень
+      level: newAssignment.level || 'simple',
       access: access,
       user_id: userId,
       group_id: groupId,
@@ -1305,7 +1333,6 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
     }
   };
 
-  // Вспомогательные функции для статистики
   const getGradeColor = (grade: number) => {
     if (grade >= 4.5) return '#10b981';
     if (grade >= 3.5) return '#3b82f6';
@@ -2150,7 +2177,18 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
                     )}
                   </div>
 
-                 
+                  <div className="form-group">
+                    <label>Уровень сложности</label>
+                    <select
+                      value={newAssignment.level}
+                      onChange={(e) => setNewAssignment({ ...newAssignment, level: e.target.value })}
+                    >
+                      <option value="">Выберите уровень</option>
+                      {levelOptions.map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </div>
 
                   <div className="form-row">
                     <div className="form-group">
@@ -2405,6 +2443,19 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
                     )}
                   </div>
 
+                  <div className="form-group">
+                    <label>Уровень сложности</label>
+                    <select
+                      value={newAssignment.level}
+                      onChange={(e) => setNewAssignment({ ...newAssignment, level: e.target.value })}
+                    >
+                      <option value="">Выберите уровень</option>
+                      {levelOptions.map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div className="form-row">
                     <div className="form-group">
                       <label>Погодные условия</label>
@@ -2427,8 +2478,9 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
                     <div className="checkbox-group">
                       <label className="checkbox-label">
                         <input
-                          type="checkbox"
-                          checked={newAssignment.assignedTo.includes('all')}
+                          type="radio"
+                          name="accessTypeTemplate"
+                          checked={selectedAssignedType === 'all'}
                           onChange={() => {
                             handleAssignedToChange('all');
                             setAssignmentErrors(prev => ({ ...prev, assignedTo: undefined, group: undefined, student: undefined }));
@@ -2438,8 +2490,9 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
                       </label>
                       <label className="checkbox-label">
                         <input
-                          type="checkbox"
-                          checked={newAssignment.assignedTo.includes('group')}
+                          type="radio"
+                          name="accessTypeTemplate"
+                          checked={selectedAssignedType === 'group'}
                           onChange={() => {
                             handleAssignedToChange('group');
                             setAssignmentErrors(prev => ({ ...prev, assignedTo: undefined, group: undefined, student: undefined }));
@@ -2449,8 +2502,9 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
                       </label>
                       <label className="checkbox-label">
                         <input
-                          type="checkbox"
-                          checked={newAssignment.assignedTo.includes('student')}
+                          type="radio"
+                          name="accessTypeTemplate"
+                          checked={selectedAssignedType === 'student'}
                           onChange={() => {
                             handleAssignedToChange('student');
                             setAssignmentErrors(prev => ({ ...prev, assignedTo: undefined, group: undefined, student: undefined }));
@@ -2484,7 +2538,7 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
                     </div>
                   )}
 
-                  {newAssignment.assignedTo.includes('student') && (
+                  {selectedAssignedType === 'student' && (
                     <div className="form-group">
                       <label>Выберите ученика *</label>
                       <select
