@@ -983,9 +983,9 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
 
   const handleCreateTemplate = (assignment: Assignment) => {
     setSelectedAssignment(null);
-    
+
     const foundTopic = topics.find(t => t.name === assignment.topic);
-    
+
     setNewAssignment({
       topicId: foundTopic?.id || 0,
       topicName: assignment.topic,
@@ -1016,14 +1016,14 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
     const selectedDefectsList = assignment.selectedDefects
       .map(id => allDefectsFromDB.find(d => d.id === id))
       .filter((d): d is Defect => d !== undefined);
-    
+
     const availableDefectsList = allDefectsFromDB.filter(
       d => !selectedDefectsList.some(sd => sd.id === d.id)
     );
 
     setSelectedDefects(selectedDefectsList);
     setAvailableDefects(availableDefectsList);
-    
+
     setSelectedAssignedType(assignment.assignedTo[0] || '');
     setAssignmentErrors({});
     setShowTemplateForm(true);
@@ -1504,8 +1504,8 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
                         <div style={{ fontWeight: '500', color: '#e5e7eb' }}>
                           {`${student.lastName} ${student.firstName} ${student.patronymic}`}
                         </div>
-                        <div style={{ 
-                          fontSize: '12px', 
+                        <div style={{
+                          fontSize: '12px',
                           marginTop: '4px',
                           display: 'inline-block',
                           padding: '2px 10px',
@@ -2048,7 +2048,7 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
                 </div>
                 <div className="details-row">
                   <span className="details-label">Уровень сложности:</span>
-                  <span className="details-value" style={{ 
+                  <span className="details-value" style={{
                     color: getLevelColor(executingAssignment.level),
                     fontWeight: '600'
                   }}>
@@ -2176,20 +2176,6 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
                       <div className="error-message-field">{assignmentErrors.modes}</div>
                     )}
                   </div>
-
-                  <div className="form-group">
-                    <label>Уровень сложности</label>
-                    <select
-                      value={newAssignment.level}
-                      onChange={(e) => setNewAssignment({ ...newAssignment, level: e.target.value })}
-                    >
-                      <option value="">Выберите уровень</option>
-                      {levelOptions.map(option => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </select>
-                  </div>
-
                   <div className="form-row">
                     <div className="form-group">
                       <label>Погодные условия</label>
@@ -2442,20 +2428,6 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
                       <div className="error-message-field">{assignmentErrors.modes}</div>
                     )}
                   </div>
-
-                  <div className="form-group">
-                    <label>Уровень сложности</label>
-                    <select
-                      value={newAssignment.level}
-                      onChange={(e) => setNewAssignment({ ...newAssignment, level: e.target.value })}
-                    >
-                      <option value="">Выберите уровень</option>
-                      {levelOptions.map(option => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </select>
-                  </div>
-
                   <div className="form-row">
                     <div className="form-group">
                       <label>Погодные условия</label>
@@ -2626,7 +2598,7 @@ const TeacherProfile = ({ onBack }: TeacherProfileProps) => {
                             <span className="assignment-date">{assignment.createdAt}</span>
                           </div>
                           <div style={{ display: 'flex', gap: '10px', marginTop: '8px', marginBottom: '8px' }}>
-                            <span className="difficulty-badge" style={{ 
+                            <span className="difficulty-badge" style={{
                               backgroundColor: `${getLevelColor(assignment.level)}20`,
                               color: getLevelColor(assignment.level),
                               border: `1px solid ${getLevelColor(assignment.level)}40`
